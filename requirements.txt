@@ -1,0 +1,6 @@
+# Build Your First Tool-Calling Agent with Claude — workshop dependencies
+# Install: pip3 install -r requirements.txt
+
+anthropic>=0.40.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0

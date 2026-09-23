@@ -1,0 +1,25 @@
+bug_id,title,component,priority,status,assignee,hours_open,sla_hours,sla_breach
+BUG-1001,Login fails with SSO redirect loop,auth,critical,Open,Priya Nair,30,4,YES
+BUG-1002,Checkout button unresponsive on Safari,billing,high,Open,Priya Nair,20,8,YES
+BUG-1003,Push notifications delayed on Android,mobile,medium,Open,Jordan Lee,15,24,NO
+BUG-1004,API returns 500 on bulk export,api,critical,Open,Sam Ortiz,50,4,YES
+BUG-1005,Dashboard chart mislabels Q3 revenue,frontend,low,Open,Jordan Lee,40,48,NO
+BUG-1006,Refund webhook fires twice,billing,high,Open,Priya Nair,12,8,YES
+BUG-1007,Dark mode toggle resets on reload,frontend,low,Open,Jordan Lee,5,48,NO
+BUG-1008,Rate limiter blocks valid API keys,api,critical,Open,Sam Ortiz,10,4,YES
+BUG-1009,Password reset email delayed 20 min,auth,medium,Open,Priya Nair,18,24,NO
+BUG-1010,iOS app crashes on profile photo upload,mobile,high,Open,Jordan Lee,9,8,YES
+BUG-1011,Invoice PDF missing tax line item,billing,medium,In Progress,Sam Ortiz,22,24,NO
+BUG-1012,Search autocomplete lags on long queries,frontend,low,Open,Jordan Lee,3,48,NO
+BUG-1013,OAuth token refresh fails silently,auth,critical,Open,Priya Nair,6,4,YES
+BUG-1014,Bulk export CSV has wrong encoding,api,medium,Open,Sam Ortiz,14,24,NO
+BUG-1015,Android app freezes on slow network,mobile,high,In Progress,Jordan Lee,7,8,NO
+BUG-1016,Coupon codes apply twice at checkout,billing,critical,Open,Priya Nair,5,4,YES
+BUG-1017,Tooltip text overflows on small screens,frontend,low,Open,Jordan Lee,2,48,NO
+BUG-1018,API pagination skips last page,api,medium,Open,Sam Ortiz,20,24,NO
+BUG-1019,Two-factor code SMS delayed,auth,high,Open,Priya Nair,10,8,YES
+BUG-1020,In-app purchase receipt not emailed,mobile,medium,Open,Jordan Lee,16,24,NO
+BUG-1021,Subscription downgrade not prorated,billing,medium,In Progress,Sam Ortiz,19,24,NO
+BUG-1022,Chart tooltip shows stale data,frontend,low,Open,Jordan Lee,1,48,NO
+BUG-1023,Webhook retries exceed rate limit,api,high,Open,Sam Ortiz,9,8,YES
+BUG-1024,Biometric login fails after OS update,auth,high,Open,Priya Nair,11,8,YES

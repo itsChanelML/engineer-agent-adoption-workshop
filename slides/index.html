@@ -1,0 +1,458 @@
+<title>Build Your First Agent</title>
+<style>
+  /* ── Fonts ─────────────────────────────────────────────────────────────── */
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  /* ── Tokens — light default ───────────────────────────────────────────── */
+  :root {
+    --bg:          #F5F2EA;
+    --surface:     #FFFFFF;
+    --surface-2:   #ECE6D8;
+    --text:        #1C1E22;
+    --text-dim:    #5B6472;
+    --border:      #DCD3BE;
+    --accent:      #0E8C7F;
+    --accent-ink:  #FFFFFF;
+    --accent-soft: #D8EFE9;
+    --success:     #1F9D55;
+    --retry:       #B5790A;
+    --escalate:    #C23B4B;
+    --code-bg:     #FBF9F3;
+    --shadow:      0 1px 2px rgba(28,30,34,.06), 0 8px 24px rgba(28,30,34,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:          #11151C;
+      --surface:     #1B212B;
+      --surface-2:   #222939;
+      --text:        #EDEAE3;
+      --text-dim:    #8B93A1;
+      --border:      #2B3342;
+      --accent:      #56E0C9;
+      --accent-ink:  #08201C;
+      --accent-soft: #123B37;
+      --success:     #6EE7A8;
+      --retry:       #FBBF6B;
+      --escalate:    #FB7185;
+      --code-bg:     #161B24;
+      --shadow:      0 1px 2px rgba(0,0,0,.3), 0 12px 32px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:          #11151C;
+    --surface:     #1B212B;
+    --surface-2:   #222939;
+    --text:        #EDEAE3;
+    --text-dim:    #8B93A1;
+    --border:      #2B3342;
+    --accent:      #56E0C9;
+    --accent-ink:  #08201C;
+    --accent-soft: #123B37;
+    --success:     #6EE7A8;
+    --retry:       #FBBF6B;
+    --escalate:    #FB7185;
+    --code-bg:     #161B24;
+    --shadow:      0 1px 2px rgba(0,0,0,.3), 0 12px 32px rgba(0,0,0,.4);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    overflow: hidden;
+  }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, "SF Mono", monospace; }
+
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+
+  /* ── Deck shell ────────────────────────────────────────────────────────── */
+  #deck {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+  }
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(20px, 5vw, 64px) clamp(20px, 6vw, 96px);
+    padding-block: clamp(56px, 8vh, 96px);
+  }
+  .slide[hidden] { display: none; }
+
+  .kicker {
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .slide-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 20px;
+    max-width: 1000px;
+  }
+  .slide-num {
+    position: absolute;
+    right: clamp(20px, 6vw, 96px);
+    bottom: 20px;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Nav ───────────────────────────────────────────────────────────────── */
+  .nav {
+    position: fixed;
+    left: 0; right: 0; bottom: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    z-index: 20;
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--border);
+    border: none; padding: 0; cursor: pointer;
+  }
+  .dot[aria-current="true"] { background: var(--accent); width: 20px; border-radius: 4px; }
+  .arrow {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border);
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 20; box-shadow: var(--shadow);
+    font-size: 16px;
+  }
+  .arrow:focus-visible, .dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .arrow.prev { left: 16px; } .arrow.next { right: 16px; }
+  .arrow[disabled] { opacity: .3; cursor: default; }
+
+  /* ── Typographic scale ─────────────────────────────────────────────────── */
+  .display   { font-size: clamp(34px, 5.2vw, 64px); font-weight: 700; line-height: 1.05; letter-spacing: -.01em; }
+  .h2        { font-size: clamp(24px, 3.4vw, 38px); font-weight: 700; line-height: 1.15; }
+  .lede      { font-size: clamp(16px, 2vw, 20px); color: var(--text-dim); line-height: 1.5; max-width: 62ch; }
+  .body-text { font-size: clamp(15px, 1.6vw, 18px); line-height: 1.6; max-width: 62ch; }
+
+  /* ── Reusable bits ─────────────────────────────────────────────────────── */
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px; font-weight: 600; letter-spacing: .04em;
+    padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--text-dim);
+    width: fit-content;
+  }
+  code, .code-inline {
+    font-family: "IBM Plex Mono", monospace;
+    background: var(--surface-2);
+    padding: .1em .4em;
+    border-radius: 5px;
+    font-size: .88em;
+  }
+  .codeblock {
+    font-family: "IBM Plex Mono", monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    font-size: clamp(12px, 1.5vw, 15px);
+    line-height: 1.65;
+    overflow-x: auto;
+    box-shadow: var(--shadow);
+  }
+  .codeblock .c { color: var(--text-dim); }
+  .codeblock .k { color: var(--accent); }
+  .codeblock .s { color: var(--retry); }
+
+  .status-SUCCESS  { color: var(--success); }
+  .status-RETRY    { color: var(--retry); }
+  .status-ESCALATE { color: var(--escalate); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .card h3 { font-size: 16px; margin-bottom: 8px; }
+  .card p  { margin: 0; color: var(--text-dim); font-size: 14px; line-height: 1.55; }
+
+  table.agenda { border-collapse: collapse; width: 100%; max-width: 640px; }
+  table.agenda td { padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 15px; }
+  table.agenda td:first-child { font-family: "IBM Plex Mono", monospace; color: var(--accent); width: 130px; font-variant-numeric: tabular-nums; }
+
+  a.link { color: var(--accent); text-decoration: none; border-bottom: 1px solid currentColor; }
+
+  .step-num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: clamp(50px, 9vw, 100px);
+    font-weight: 600;
+    color: var(--accent-soft);
+    line-height: 1;
+    -webkit-text-stroke: 1.5px var(--accent);
+    color: transparent;
+  }
+
+  /* ── Diagram ───────────────────────────────────────────────────────────── */
+  .diagram-wrap svg { width: 100%; height: auto; max-width: 760px; }
+  .diagram-wrap text { font-family: "IBM Plex Mono", monospace; }
+</style>
+
+<div id="deck" role="group" aria-roledescription="slide deck"></div>
+
+<div class="nav" id="dots"></div>
+<button class="arrow prev mono" id="prevBtn" aria-label="Previous slide">‹</button>
+<button class="arrow next mono" id="nextBtn" aria-label="Next slide">›</button>
+
+<script>
+(function(){
+
+const SVG_LOOP = `
+<svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"></path>
+    </marker>
+  </defs>
+  <rect x="20" y="70" width="150" height="70" rx="10" fill="var(--surface)" stroke="var(--border)"></rect>
+  <text x="95" y="110" text-anchor="middle" font-size="15" fill="var(--text)">You</text>
+  <rect x="305" y="20" width="150" height="70" rx="10" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"></rect>
+  <text x="380" y="60" text-anchor="middle" font-size="15" fill="var(--text)">Claude</text>
+  <rect x="590" y="70" width="150" height="70" rx="10" fill="var(--surface)" stroke="var(--border)"></rect>
+  <text x="655" y="105" text-anchor="middle" font-size="14" fill="var(--text)">Your</text>
+  <text x="655" y="122" text-anchor="middle" font-size="14" fill="var(--text)">code</text>
+
+  <path d="M170,95 C230,70 260,60 303,55" fill="none" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arrow)"></path>
+  <text x="230" y="45" font-size="11" fill="var(--text-dim)">"find overdue bugs"</text>
+
+  <path d="M455,58 C520,60 560,75 588,95" fill="none" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arrow)"></path>
+  <text x="470" y="165" font-size="11" fill="var(--accent)">tool_use: name + input</text>
+
+  <path d="M600,145 C540,190 260,190 175,150" fill="none" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arrow)"></path>
+  <text x="330" y="205" font-size="11" fill="var(--accent)">tool_result</text>
+
+  <path d="M330,35 C260,15 180,25 172,68" fill="none" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="3 3"></path>
+  <text x="205" y="15" font-size="11" fill="var(--text-dim)">final answer</text>
+</svg>`;
+
+const slides = [
+
+// 1 ─────────────────────────────────────────────────────────────────────────
+{ kicker: "Developer Enablement", body: `
+  <div class="slide-body">
+    <div class="display">Build Your First<br>Tool-Calling Agent<br>with Claude</div>
+    <div class="lede">A 90-minute hands-on workshop. No framework — four
+    small Python files, and a working agent by the end of it.</div>
+    <div class="pill" style="margin-top:8px">CHANEL POWER · WORKSHOP FACILITATOR</div>
+  </div>` },
+
+// 2 ─────────────────────────────────────────────────────────────────────────
+{ kicker: "Today", body: `
+  <div class="slide-body">
+    <div class="h2">Agenda</div>
+    <table class="agenda mono">
+      <tr><td>0:00–0:08</td><td class="mono">Intro — what an agent loop actually is</td></tr>
+      <tr><td>0:08–0:15</td><td class="mono">Setup check</td></tr>
+      <tr><td>0:15–0:30</td><td class="mono">Step 1 — your first tool call</td></tr>
+      <tr><td>0:30–0:50</td><td class="mono">Step 2 — the agent loop</td></tr>
+      <tr><td>0:50–0:65</td><td class="mono">Step 3 — a registry Claude chooses from</td></tr>
+      <tr><td>0:65–0:82</td><td class="mono">Step 4 — making it resilient</td></tr>
+      <tr><td>0:82–0:90</td><td class="mono">Wrap-up + Q&amp;A</td></tr>
+    </table>
+  </div>` },
+
+// 3 ─────────────────────────────────────────────────────────────────────────
+{ kicker: "Before we touch code", body: `
+  <div class="slide-body">
+    <div class="h2">An agent is not a new kind of software.</div>
+    <div class="body-text">It's three things you already know how to build,
+    wired together in a loop:</div>
+    <div class="grid2">
+      <div class="card"><h3>A model</h3><p>Decides what to do next, in words —
+      including, sometimes, "call this function with these arguments."</p></div>
+      <div class="card"><h3>A loop</h3><p>Sends the model's decision back into
+      your program, runs it, and reports what happened.</p></div>
+      <div class="card"><h3>Your code</h3><p>The tools themselves — plain
+      Python functions. The model never touches your disk, your API keys, or
+      your database directly.</p></div>
+    </div>
+  </div>` },
+
+// 4 ─────────────────────────────────────────────────────────────────────────
+{ kicker: "The one diagram that matters", body: `
+  <div class="slide-body">
+    <div class="h2">Claude doesn't run tools. It asks.</div>
+    <div class="body-text">Your code says yes — and decides how.</div>
+    <div class="diagram-wrap">${SVG_LOOP}</div>
+  </div>` },
+
+// 5 ─────────────────────────────────────────────────────────────────────────
+{ kicker: "Today's domain", body: `
+  <div class="slide-body">
+    <div class="h2">24 bugs. 3 tools. One assignee who's drowning.</div>
+    <div class="body-text">Small enough to hold in your head, real enough to
+    misbehave in the ways production data actually does.</div>
+    <div class="grid2">
+      <div class="card"><h3 class="mono">find_overdue_bugs</h3><p>Which open
+      bugs breached their SLA window — optionally filtered by component.</p></div>
+      <div class="card"><h3 class="mono">summarize_by_severity</h3><p>Counts
+      of open bugs, grouped by critical / high / medium / low.</p></div>
+      <div class="card"><h3 class="mono">draft_triage_note</h3><p>A ready-to-
+      send note for one assignee's overdue bugs, ranked by hours open.</p></div>
+    </div>
+  </div>` },
+
+// 6 ─────────────────────────────────────────────────────────────────────────
+{ kicker: "Step 1 · 15 min", section: true, body: `
+  <div class="slide-body">
+    <div class="step-num mono">01</div>
+    <div class="h2">Your First Tool Call</div>
+    <div class="body-text">One request. One look at exactly what comes back.
+    No loop yet — just the raw shape everything else is built from.</div>
+    <div class="codeblock mono">for block in response.content:<br>
+    &nbsp;&nbsp;<span class="k">if</span> block.type == <span class="s">"tool_use"</span>:<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="c"># name + input — Claude asked. Nothing ran yet.</span></div>
+  </div>` },
+
+// 7 ─────────────────────────────────────────────────────────────────────────
+{ kicker: "Step 2 · 20 min", section: true, body: `
+  <div class="slide-body">
+    <div class="step-num mono">02</div>
+    <div class="h2">The Agent Loop</div>
+    <div class="body-text">Call → run whatever tool it asked for → hand the
+    result back → repeat until it stops asking.</div>
+    <div class="body-text"><b>The rule that trips everyone up:</b> every
+    <code>tool_use</code> in a turn needs a matching <code>tool_result</code>
+    in the very next message — bundled together, not sent one at a time.</div>
+  </div>` },
+
+// 8 ─────────────────────────────────────────────────────────────────────────
+{ kicker: "Step 3 · 15 min", section: true, body: `
+  <div class="slide-body">
+    <div class="step-num mono">03</div>
+    <div class="h2">A Registry Claude Chooses From</div>
+    <div class="body-text">Three tools. One goal that needs all of them —
+    in an order we never specify.</div>
+    <div class="body-text">Would it still work if <code>draft_triage_note</code>
+    ran before <code>find_overdue_bugs</code>? No — and nothing in your code
+    enforces that. The model is inferring the dependency from the goal alone.</div>
+  </div>` },
+
+// 9 ─────────────────────────────────────────────────────────────────────────
+{ kicker: "Step 4 · 17 min", section: true, body: `
+  <div class="slide-body">
+    <div class="step-num mono">04</div>
+    <div class="h2">Making It Resilient</div>
+    <div class="grid2">
+      <div class="card"><h3 class="status-RETRY mono">RETRY</h3>
+      <p><b>Whose fault:</b> the model's request.<br>
+      <b>Example:</b> it asks for a tool that doesn't exist.<br>
+      <b>Fix:</b> hand the mistake back — it can correct itself next turn.</p></div>
+      <div class="card"><h3 class="status-ESCALATE mono">ESCALATE</h3>
+      <p><b>Whose fault:</b> the data itself.<br>
+      <b>Example:</b> a required column got renamed upstream.<br>
+      <b>Fix:</b> stop cleanly. No amount of retrying fixes broken data.</p></div>
+    </div>
+    <div class="body-text">Conflating the two is exactly what makes agent
+    demos flaky: retrying forever on something retrying can't fix.</div>
+  </div>` },
+
+// 10 ────────────────────────────────────────────────────────────────────────
+{ kicker: "Zoom out", body: `
+  <div class="slide-body">
+    <div class="h2">This is the same contract at production scale.</div>
+    <div class="body-text">Everything you built today —
+    <span class="status-SUCCESS mono">SUCCESS</span> /
+    <span class="status-RETRY mono">RETRY</span> /
+    <span class="status-ESCALATE mono">ESCALATE</span>,
+    tools that re-read from source instead of trusting echoed history — is
+    the skeleton of <b>AirClaude</b>: six tools, an Airflow-scheduled 311
+    triage pipeline and a model-migration eval agent, running against the
+    Claude Developer Platform.</div>
+    <div class="body-text">Same shape. More tools. A scheduler on top.</div>
+  </div>` },
+
+// 11 ────────────────────────────────────────────────────────────────────────
+{ kicker: "If you finish early", body: `
+  <div class="slide-body">
+    <div class="h2">Stretch goal: context is not free</div>
+    <div class="body-text">Every tool result here is small enough to send
+    back in full. Real data usually isn't. Open <code>common/tools.py</code>
+    and try writing a <code>trim_for_history</code> that strips a result down
+    to just what the <i>next</i> call actually needs before it re-enters
+    <code>messages</code> — the same idea AirClaude uses at 300-row scale.</div>
+  </div>` },
+
+// 12 ────────────────────────────────────────────────────────────────────────
+{ kicker: "Thank you", body: `
+  <div class="slide-body">
+    <div class="display" style="font-size:clamp(28px,4vw,46px)">Go build something<br>that asks first.</div>
+    <div class="body-text" style="margin-top:6px">
+    Materials: <span class="code-inline">LAB.md</span> ·
+    <span class="code-inline">FACILITATOR_GUIDE.md</span> ·
+    <span class="code-inline">starter/</span> ·
+    <span class="code-inline">solution/</span></div>
+    <div class="pill" style="margin-top:14px">CHANEL POWER · MENTOR ME COLLECTIVE</div>
+  </div>` },
+];
+
+// ── Render ──────────────────────────────────────────────────────────────────
+const deck = document.getElementById('deck');
+const dotsEl = document.getElementById('dots');
+let current = 0;
+
+slides.forEach((s, i) => {
+  const el = document.createElement('section');
+  el.className = 'slide';
+  el.id = 'slide-' + i;
+  if (i !== 0) el.hidden = true;
+  el.innerHTML = `<div class="kicker">${s.kicker}</div>${s.body}<div class="slide-num mono">${String(i+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}</div>`;
+  deck.appendChild(el);
+
+  const dot = document.createElement('button');
+  dot.className = 'dot';
+  dot.setAttribute('aria-label', 'Go to slide ' + (i+1));
+  dot.setAttribute('aria-current', i === 0 ? 'true' : 'false');
+  dot.addEventListener('click', () => goTo(i));
+  dotsEl.appendChild(dot);
+});
+
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+function goTo(i) {
+  if (i < 0 || i >= slides.length) return;
+  document.getElementById('slide-' + current).hidden = true;
+  dotsEl.children[current].setAttribute('aria-current', 'false');
+  current = i;
+  document.getElementById('slide-' + current).hidden = false;
+  dotsEl.children[current].setAttribute('aria-current', 'true');
+  prevBtn.disabled = current === 0;
+  nextBtn.disabled = current === slides.length - 1;
+}
+
+prevBtn.addEventListener('click', () => goTo(current - 1));
+nextBtn.addEventListener('click', () => goTo(current + 1));
+prevBtn.disabled = true;
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { goTo(current + 1); }
+  if (e.key === 'ArrowLeft') { goTo(current - 1); }
+});
+})();
+</script>
